@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sukoon Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Firebase (optional; fill config below to enable Firestore) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --brand:#27ae60; --brand-2:#219150; --bg:#f3f6fa; --sidebar:#2c3e50; --card:#fff; --text:#1f2937;
+    }
+    * { box-sizing:border-box }
+    body {
+      margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg); color:var(--text); display:flex; min-height:100vh;
+    }
+    /* Sidebar */
+    .sidebar {
+      width: 242px; background: var(--sidebar); color: #fff; position: fixed; inset:0 auto 0 0; padding: 20px;
+      display:flex; flex-direction:column; gap:8px;
+    }
+    .sidebar h2 { text-align:center; margin:4px 0 16px 0; letter-spacing:.3px }
+    .nav a {
+      display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; padding:10px 12px; border-radius:10px;
+    }
+    .nav a:hover { background:#34495e }
+    .nav .active { background:#34495e }
+    .footer-note { margin-top:auto; font-size:12px; opacity:.8; text-align:center }
+    /* Main */
+    .main { margin-left: 262px; padding: 22px; flex:1; max-width: 1100px; width:100% }
+    .header {
+      display:flex; justify-content:space-between; align-items:center; gap:12px;
+    }
+    .header .user { display:flex; align-items:center; gap:10px }
+    .header .user img { border-radius:50% }
+    /* Cards grid */
+    .cards { display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; margin-top:18px }
+    .card {
+      background:var(--card); border-radius:16px; padding:18px; box-shadow: 0 10px 30px rgba(0,0,0,.06);
+    }
+    .card h3 { margin:4px 0 8px 0 }
+    .btn {
+      background:var(--brand); color:#fff; border:none; border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:600;
+    }
+    .btn:hover { background:var(--brand-2) }
+    input[type="number"], input[type="date"], input[type="time"], select, textarea {
+      width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; outline:none;
+      font:inherit; background:#fff;
+    }
+    textarea { min-height:90px; resize:vertical }
+    .stack { display:flex; flex-direction:column; gap:10px }
+    .row { display:flex; gap:10px }
+    .row > * { flex:1 }
+    /* Chart card */
+    .chart-card { margin-top:18px }
+    /* Upcoming session card */
+    .session-line { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0 }
+    .session-line + .session-line { border-top:1px dashed #e5e7eb }
+    .pill { font-size:12px; background:#eef2ff; color:#3730a3; padding:4px 8px; border-radius:999px }
+    /* Chatbot */
+    .chat-fab {
+      position:fixed; right:22px; bottom:22px; width:56px; height:56px; border-radius:50%;
+      background:var(--brand); color:#fff; display:flex; align-items:center; justify-content:center; font-size:22px; cursor:pointer;
+      box-shadow:0 10px 25px rgba(39,174,96,.35); z-index:9999;
+    }
+    .chatpanel {
+      position:fixed; right:22px; bottom:90px; width:320px; max-height:70vh; display:none; flex-direction:column;
+      background:#fff; border-radius:16px; box-shadow:0 20px 45px rgba(0,0,0,.2); overflow:hidden; z-index:9998;
+    }
+    .chat-head { background:var(--brand); color:#fff; padding:12px 14px; font-weight:700; display:flex; align-items:center; justify-content:space-between }
+    .chat-body { padding:12px; overflow:auto; display:flex; flex-direction:column; gap:10px }
+    .msg { padding:10px 12px; border-radius:12px; max-width:80% }
+    .msg.bot { background:#f1f5f9; align-self:flex-start }
+    .msg.user { background:#e8fff1; align-self:flex-end }
+    .chat-foot { padding:10px; display:flex; gap:8px; border-top:1px solid #eef2f7 }
+    .chat-foot input { flex:1; padding:10px 12px; border-radius:10px; border:1px solid #e5e7eb }
+    .quickchips { display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 0 }
+    .chip { background:#f3f4f6; border:1px solid #e5e7eb; padding:6px 10px; border-radius:999px; font-size:12px; cursor:pointer }
+    @media (max-width: 980px) {
+      .cards { grid-template-columns: 1fr }
+      .main { margin-left: 0; padding-bottom: 110px }
+      .sidebar { position: fixed; transform: translateX(-105%); transition: transform .3s ease }
+      .sidebar.open { transform: translateX(0) }
+      .hamburger { display:inline-flex }
+    }
+    .hamburger { display:none; gap:8px; align-items:center }
+  </style>
+
+  <!-- 🔥 Added styles only (no changes to your CSS above) -->
+  <style>
+    /* Dark mode via CSS variables override */
+    body.dark {
+      --bg:#0b1220; --card:#0f172a; --text:#e5e7eb; --sidebar:#0b1220;
+      --brand:#3ddc84; --brand-2:#2fb870;
+    }
+    .tag { display:inline-block; padding:4px 8px; font-size:12px; border:1px solid #e5e7eb; border-radius:999px; margin-right:6px; margin-bottom:6px }
+    .list { display:grid; grid-template-columns: repeat(2, 1fr); gap:12px }
+    @media (max-width: 980px){ .list { grid-template-columns: 1fr } }
+    .muted { opacity:.8; font-size:13px }
+    .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px }
+    .inline { display:inline-flex; align-items:center; gap:8px }
+    .small { font-size:12px }
+    .sep { height:1px; background:#e5e7eb; margin:10px 0 }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <h2>🕊️ Sukoon</h2>
+    <nav class="nav">
+      <a class="active" href="#"><i class="fa fa-home"></i> Dashboard</a>
+      <a href="#mood"><i class="fa fa-smile"></i> Mood Tracker</a>
+      <a href="#booking"><i class="fa fa-calendar"></i> Book Session</a>
+      <a href="#exercises"><i class="fa fa-heart"></i> Exercises</a>
+      <a href="#therapists"><i class="fa fa-users"></i> Therapists</a>
+      <a href="#community"><i class="fa fa-comments"></i> Community</a>
+      <a href="#settings"><i class="fa fa-cog"></i> Settings</a>
+    </nav>
+    <div class="footer-note">Made with care 💚</div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="header">
+      <div style="display:flex; align-items:center; gap:12px">
+        <button class="hamburger btn" onclick="toggleSidebar()"><i class="fa fa-bars"></i></button>
+        <h1>Welcome back, Ansshu 👋</h1>
+      </div>
+      <div class="user">
+        <span id="authStatus" class="pill">Guest</span>
+        <img src="https://i.pravatar.cc/40?img=13" width="40" height="40" alt="profile">
+      </div>
+    </div>
+
+    <!-- Cards -->
+    <section class="cards">
+      <div class="card" id="mood">
+        <h3>Mood Check-In</h3>
+        <div class="stack">
+          <label>How are you feeling today? (1–10)</label>
+          <div class="row">
+            <input type="number" id="moodInput" min="1" max="10" placeholder="e.g. 7"/>
+            <button class="btn" onclick="logMood()">Log Mood</button>
+          </div>
+          <small id="moodHint">Tip: 1 = very low, 10 = excellent</small>
+        </div>
+      </div>
+
+      <div class="card" id="booking">
+        <h3>Book a Session</h3>
+        <div class="stack">
+          <div class="row">
+            <select id="therapist">
+              <option value="Dr. Aisha Verma (Anxiety, Hindi/English)">Dr. Aisha Verma (Anxiety, Hindi/English)</option>
+              <option value="Mr. Karan Mehta (Stress & Work, English)">Mr. Karan Mehta (Stress & Work, English)</option>
+              <option value="Ms. Ria D'Souza (Relationships, English)">Ms. Ria D'Souza (Relationships, English)</option>
+            </select>
+            <input type="date" id="date"/>
+            <input type="time" id="time"/>
+          </div>
+          <textarea id="notes" placeholder="What would you like to focus on? (optional)"></textarea>
+          <div class="row">
+            <button class="btn" onclick="saveSession()">Save Session</button>
+            <button class="btn" onclick="prefillToday()">Today +30m</button>
+          </div>
+          <small>After saving, use “Add to Google Calendar” or download the .ics file.</small>
+        </div>
+      </div>
+
+      <div class="card" id="upcoming">
+        <h3>Upcoming Session</h3>
+        <div id="upcomingContainer">
+          <p>No session booked yet.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mood Chart -->
+    <section class="card chart-card">
+      <h3>Mood Progress (Last 7 Days)</h3>
+      <canvas id="moodChart" height="110"></canvas>
+      <!-- 🔥 added: stats container (filled by JS) -->
+      <div id="moodStats" class="small muted" style="margin-top:8px"></div>
+    </section>
+
+    <!-- Simple quick exercises -->
+    <section class="card" id="exercises" style="margin-top:18px">
+      <h3>Quick Exercises</h3>
+      <div class="row">
+        <button class="btn" onclick="startBreathing()">3-min Breathing</button>
+        <button class="btn" onclick="openJournal()">Open Journal</button>
+        <button class="btn" onclick="suggestAffirmations()">Affirmations</button>
+      </div>
+      <div id="exerciseArea" style="margin-top:12px"></div>
+    </section>
+
+    <!-- 🔥 ADDED: Therapists directory -->
+    <section class="card" id="therapists" style="margin-top:18px">
+      <h3>Therapists</h3>
+      <div class="toolbar">
+        <input id="thSearch" placeholder="Search by name/specialty/language" />
+        <select id="thSpecialty"><option value="">All specialties</option></select>
+        <select id="thLanguage"><option value="">All languages</option></select>
+        <button class="btn" onclick="renderTherapists()">Apply</button>
+      </div>
+      <div class="list" id="therapistList"></div>
+      <div class="muted small" id="favNote" style="margin-top:8px"></div>
+    </section>
+
+    <!-- 🔥 ADDED: Community -->
+    <section class="card" id="community" style="margin-top:18px">
+      <h3>Community</h3>
+      <div class="stack">
+        <textarea id="postText" placeholder="Share a supportive thought or ask a question… (saved locally)"></textarea>
+        <div class="row">
+          <select id="postMood">
+            <option value="">No tag</option>
+            <option>Anxiety</option><option>Stress</option>
+            <option>Sleep</option><option>Relationships</option><option>Study/Work</option>
+          </select>
+          <label class="inline small"><input type="checkbox" id="postAnon"> Post anonymously</label>
+          <button class="btn" onclick="addPost()">Post</button>
+        </div>
+        <div class="row">
+          <select id="postSort">
+            <option value="new">Newest</option>
+            <option value="top">Top (likes)</option>
+          </select>
+          <span class="muted small" id="postCount"></span>
+        </div>
+      </div>
+      <div class="sep"></div>
+      <div id="posts"></div>
+    </section>
+
+    <!-- 🔥 ADDED: Settings -->
+    <section class="card" id="settings" style="margin-top:18px">
+      <h3>Settings</h3>
+      <div class="stack">
+        <label class="inline"><input type="checkbox" id="darkToggle"> Dark mode</label>
+        <label class="inline"><input type="checkbox" id="reminderToggle"> Session reminder (10 min before)</label>
+        
+        <button class="btn" onclick="resetAll()">Reset local data</button>
+        <small class="muted">Tip: fill Firebase config (top of file) to sync across devices.</small>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Chatbot -->
+  <div class="chat-fab" title="AI Mood Assistant" onclick="toggleChat()">
+    <i class="fa-regular fa-comments"></i>
+  </div>
+  <div class="chatpanel" id="chatpanel">
+    <div class="chat-head">
+      <span>AI Mood Assistant</span>
+      <button class="btn" style="padding:6px 10px; font-size:12px" onclick="toggleChat()">Close</button>
+    </div>
+    <div class="chat-body" id="chatBody">
+      <div class="msg bot">Hi! I’m here to help. Tell me how you feel—keywords like <b>anxiety</b>, <b>stress</b>, <b>sleep</b>, <b>sad</b>, or ask for <b>breathing</b>, <b>journal</b>, <b>tips</b>.</div>
+      <div class="quickchips">
+        <span class="chip" onclick="sendChip('I feel anxious')">Anxiety</span>
+        <span class="chip" onclick="sendChip('I am stressed about work')">Work stress</span>
+        <span class="chip" onclick="sendChip('I can’t sleep')">Sleep</span>
+        <span class="chip" onclick="sendChip('Give me breathing exercise')">Breathing</span>
+        <span class="chip" onclick="sendChip('Give me affirmations')">Affirmations</span>
+      </div>
+    </div>
+    <div class="chat-foot">
+      <input id="chatInput" placeholder="Type your message..." onkeydown="if(event.key==='Enter'){sendMsg()}"/>
+      <button class="btn" onclick="sendMsg()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    /* =========================
+       0) Firebase (optional)
+       ========================= */
+    // 🔧 Fill these to enable Firestore; otherwise localStorage will be used
+    const firebaseConfig = {
+      apiKey: "",              // <-- add
+      authDomain: "",          // <-- add
+      projectId: "",           // <-- add
+      storageBucket: "",       // optional
+      messagingSenderId: "",   // optional
+      appId: ""                // <-- add
+    };
+
+    let useFirebase = false;
+    let db = null, auth = null, currentUID = null;
+
+    (async function initFirebase() {
+      try {
+        const filled = firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId;
+        if (!filled) { setAuthStatus('Guest'); return; }
+        const app = firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.firestore();
+        // Anonymous auth to create a per-user bucket
+        const cred = await auth.signInAnonymously();
+        currentUID = cred.user.uid;
+        setAuthStatus('Synced');
+        useFirebase = true;
+        // After auth, load persisted data
+        await loadAllData();
+      } catch (e) {
+        console.warn('Firebase disabled / failed, falling back to localStorage.', e);
+        setAuthStatus('Guest');
+        useFirebase = false;
+        loadAllData(); // local load
+      }
+    })();
+
+    function setAuthStatus(t){ document.getElementById('authStatus').textContent = t; }
+
+    /* =========================
+       1) Storage helpers
+       ========================= */
+    const KEYS = {
+      moods: 'sukoon.moods',    // object { 'YYYY-MM-DD': number }
+      sessions: 'sukoon.sessions' // array of sessions
+    };
+
+    async function storageGet(key, def){
+      if (useFirebase) {
+        const ref = db.collection('sukoonUsers').doc(currentUID).collection('data').doc(key);
+        const snap = await ref.get();
+        return snap.exists ? snap.data().value : def;
+      } else {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : def;
+      }
+    }
+    async function storageSet(key, value){
+      if (useFirebase) {
+        const ref = db.collection('sukoonUsers').doc(currentUID).collection('data').doc(key);
+        await ref.set({ value });
+      } else {
+        localStorage.setItem(key, JSON.stringify(value));
+      }
+    }
+
+    /* =========================
+       2) Mood logic (7-day rolling)
+       ========================= */
+    const moodState = { byDate: {} }; // { 'YYYY-MM-DD': 1..10 }
+    const chartState = { chart: null, labels: [], data: [] };
+
+    function fmtDate(d){
+      const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function lastNDays(n){
+      const arr=[];
+      const today = new Date();
+      for(let i=n-1;i>=0;i--){
+        const d = new Date(today); d.setDate(today.getDate()-i);
+        arr.push(new Date(d));
+      }
+      return arr;
+    }
+
+    async function loadMoods(){
+      const loaded = await storageGet(KEYS.moods, {});
+      moodState.byDate = loaded || {};
+      rebuildChart();
+    }
+
+    function rebuildChart(){
+      const days = lastNDays(7);
+      chartState.labels = days.map(d=>d.toLocaleDateString(undefined, { weekday:'short'}));
+      chartState.data = days.map(d=> {
+        const k = fmtDate(d);
+        return moodState.byDate[k] ?? null;
+      });
+
+      // Build dataset (show gaps if null)
+      const ds = chartState.data.map(v => (v===null? null : Number(v)));
+
+      if (!chartState.chart){
+        const ctx = document.getElementById('moodChart').getContext('2d');
+        chartState.chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: chartState.labels,
+            datasets: [{
+              label: 'Mood (1–10)',
+              data: ds,
+              borderColor: '#27ae60',
+              backgroundColor: 'rgba(39, 174, 96, 0.18)',
+              spanGaps: true,
+              fill: true,
+              tension: 0.35,
+              pointBackgroundColor: '#27ae60',
+              pointRadius: 5
+            }]
+          },
+          options: {
+            responsive:true,
+            scales: {
+              y: { beginAtZero:true, max:10, ticks:{ stepSize:1 } }
+            },
+            plugins: {
+              legend: { display:true }
+            }
+          }
+        });
+      } else {
+        chartState.chart.data.labels = chartState.labels;
+        chartState.chart.data.datasets[0].data = ds;
+        chartState.chart.update();
+      }
+    }
+
+    async function logMood(){
+      const inp = document.getElementById('moodInput');
+      const val = Number(inp.value);
+      if (!val || val<1 || val>10){ alert('Please enter a mood value between 1 and 10.'); return; }
+      const k = fmtDate(new Date());
+      moodState.byDate[k] = val;
+      await storageSet(KEYS.moods, moodState.byDate);
+      rebuildChart();
+      inp.value = '';
+      // gentle nudge in chatbot
+      addBot("Logged! Would you like a 2-min breathing exercise or a quick journal?");
+    }
+
+    /* =========================
+       3) Booking logic (+Calendar)
+       ========================= */
+    const sessionState = { list: [] }; // array of { therapist, startISO, endISO, notes, gcalUrl, ics }
+
+    async function loadSessions(){
+      sessionState.list = await storageGet(KEYS.sessions, []);
+      renderUpcoming();
+    }
+
+    function toLocalISOString(date){
+      // produce yyyy-mm-ddThh:mm:ss (no Z)
+      return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0')
+        +'T'+String(date.getHours()).padStart(2,'0')+':'+String(date.getMinutes()).padStart(2,'0')+':'+String(date.getSeconds()).padStart(2,'0');
+    }
+
+    function makeGoogleCalURL({title, details, location, start, end}){
+      // start/end must be in local time converted to UTC, in YYYYMMDDTHHMMSSZ
+      function toGCal(dt){
+        const z = new Date(dt).toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+        return z;
+      }
+      const params = new URLSearchParams({
+        action:'TEMPLATE',
+        text: title,
+        details: details || '',
+        location: location || '',
+        dates: `${toGCal(start)}/${toGCal(end)}`
+      });
+      return `https://calendar.google.com/calendar/render?${params.toString()}`;
+    }
+
+    function makeICS({title, details, location, start, end}){
+      function dtstamp(d){ return d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z'; }
+      const uid = 'sukoon-'+Math.random().toString(36).slice(2)+'@local';
+      return [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Sukoon//EN',
+        'CALSCALE:GREGORIAN',
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${dtstamp(new Date())}`,
+        `DTSTART:${dtstamp(new Date(start))}`,
+        `DTEND:${dtstamp(new Date(end))}`,
+        `SUMMARY:${title}`,
+        `DESCRIPTION:${(details||'').replace(/\n/g,'\\n')}`,
+        `LOCATION:${location||''}`,
+        'END:VEVENT',
+        'END:VCALENDAR'
+      ].join('\r\n');
+    }
+
+    function downloadICS(filename, icsText){
+      const blob = new Blob([icsText], { type:'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+    }
+
+    async function saveSession(){
+      const therapist = document.getElementById('therapist').value;
+      const date = document.getElementById('date').value;
+      const time = document.getElementById('time').value;
+      const notes = document.getElementById('notes').value.trim();
+
+      if(!date || !time){ alert('Please choose date and time.'); return; }
+
+      const start = new Date(`${date}T${time}`);
+      const end = new Date(start); end.setMinutes(end.getMinutes()+45); // default 45 min
+
+      const title = `Therapy with ${therapist}`;
+      const details = notes || 'Sukoon therapy session';
+      const location = 'Online (Google Meet/Call)';
+
+      const gcalUrl = makeGoogleCalURL({ title, details, location, start, end });
+      const ics = makeICS({ title, details, location, start, end });
+
+      const session = {
+        therapist, startISO: start.toISOString(), endISO: end.toISOString(), notes, gcalUrl, ics
+      };
+      sessionState.list = [session]; // keep only the next one for simplicity
+      await storageSet(KEYS.sessions, sessionState.list);
+
+      renderUpcoming();
+      alert('Session saved! Use “Add to Google Calendar” or download .ics.');
+    }
+
+    function renderUpcoming(){
+      const c = document.getElementById('upcomingContainer');
+      c.innerHTML = '';
+      if (!sessionState.list.length){
+        c.innerHTML = '<p>No session booked yet.</p>';
+        return;
+      }
+      const s = sessionState.list[0];
+      const when = new Date(s.startISO).toLocaleString([], { dateStyle:'medium', timeStyle:'short' });
+      const wrap = document.createElement('div');
+      wrap.className = 'session-line';
+      wrap.innerHTML = `
+        <div>
+          <div><b>${s.therapist}</b></div>
+          <div>${when}</div>
+          ${s.notes ? `<div style="opacity:.8; font-size:13px; margin-top:4px">${s.notes}</div>`:''}
+        </div>
+        <div style="display:flex; gap:8px">
+          <a class="btn" href="${s.gcalUrl}" target="_blank" rel="noopener">Add to Google Calendar</a>
+          <button class="btn" onclick='downloadICS('sukoon-session.ics', ${JSON.stringify(s.ics)})'>.ics</button>
+        </div>`;
+      // fix onclick string/quotes:
+      c.appendChild(wrap);
+      const icsBtn = wrap.querySelector('button.btn');
+      icsBtn.onclick = ()=>downloadICS('sukoon-session.ics', s.ics);
+    }
+
+    function prefillToday(){
+      const now = new Date();
+      now.setMinutes(now.getMinutes()+30);
+      document.getElementById('date').value = now.toISOString().slice(0,10);
+      document.getElementById('time').value = now.toTimeString().slice(0,5);
+    }
+
+    /* =========================
+       4) Exercises (mini tools)
+       ========================= */
+    function startBreathing(){
+      const el = document.getElementById('exerciseArea');
+      el.innerHTML = `
+        <div style="padding:12px; border:1px dashed #d1d5db; border-radius:12px">
+          <b>2-minute breathing</b>
+          <div id="breathCue" style="margin-top:10px; font-size:18px">Ready?</div>
+          <div style="margin-top:8px"><button class="btn" id="startBreath">Start</button></div>
+        </div>`;
+      let interval=null, phase=0, seconds=0, total=120;
+      document.getElementById('startBreath').onclick = ()=>{
+        if(interval) return;
+        interval = setInterval(()=>{
+          seconds++;
+          const cyc = seconds % 16; // 4 in, 7 hold, 5 out (approx)
+          let text='';
+          if (cyc<4) text=`Inhale… ${4-cyc}s`;
+          else if (cyc<11) text=`Hold… ${11-cyc}s`;
+          else text=`Exhale… ${16-cyc}s`;
+          document.getElementById('breathCue').textContent = text + `  (${Math.max(0,total-seconds)}s left)`;
+          if (seconds>=total){ clearInterval(interval); document.getElementById('breathCue').textContent='Nice work. How do you feel now?'; }
+        },1000);
+      }
+    }
+
+    function openJournal(){
+      const el = document.getElementById('exerciseArea');
+      el.innerHTML = `
+        <div class="stack" style="padding:12px; border:1px dashed #d1d5db; border-radius:12px">
+          <b>Quick Journal</b>
+          <small>Prompt: What’s one thing that weighed on you today? What’s one gentle step to help?</small>
+          <textarea id="journalText" placeholder="Write here…"></textarea>
+          <div class="row">
+            <button class="btn" onclick="saveJournal()">Save</button>
+          </div>
+        </div>`;
+    }
+    function saveJournal(){
+      const txt = document.getElementById('journalText').value.trim();
+      if(!txt){ alert('Write a few words first.'); return; }
+      alert('Saved locally. (Tip: connect Firebase to sync across devices.)');
+      const key='sukoon.journal';
+      const prev = JSON.parse(localStorage.getItem(key) || '[]');
+      prev.unshift({ t: new Date().toISOString(), text: txt });
+      localStorage.setItem(key, JSON.stringify(prev.slice(0,50)));
+      document.getElementById('journalText').value='';
+    }
+
+    function suggestAffirmations(){
+      const list = [
+        "I am safe. This feeling will pass.",
+        "I can handle this one step at a time.",
+        "My worth isn’t measured by today’s productivity.",
+        "I choose to be kind to myself.",
+        "I allow myself to rest."
+      ];
+      document.getElementById('exerciseArea').innerHTML =
+        `<div style="padding:12px; border:1px dashed #d1d5db; border-radius:12px">
+           <b>Affirmations</b>
+           <ul>${list.map(s=>`<li>${s}</li>`).join('')}</ul>
+         </div>`;
+    }
+
+    /* =========================
+       5) Chatbot (rule-based)
+       ========================= */
+    function toggleChat(){
+      const p = document.getElementById('chatpanel');
+      p.style.display = (p.style.display==='flex'?'none':'flex');
+    }
+    function sendChip(text){ document.getElementById('chatInput').value = text; sendMsg(); }
+
+    function addUser(t){ const b=document.getElementById('chatBody'); const d=document.createElement('div'); d.className='msg user'; d.innerHTML=t; b.appendChild(d); b.scrollTop=b.scrollHeight; }
+    function addBot(t){ const b=document.getElementById('chatBody'); const d=document.createElement('div'); d.className='msg bot'; d.innerHTML=t; b.appendChild(d); b.scrollTop=b.scrollHeight; }
+
+    function sendMsg(){
+      const inp = document.getElementById('chatInput');
+      const text = inp.value.trim();
+      if(!text) return;
+      addUser(text);
+      inp.value = '';
+
+      const t = text.toLowerCase();
+
+      // simple intents
+      if (t.includes('anx') || t.includes('panic')) {
+        addBot("I’m here. Let’s ground together: name 5 things you can see, 4 you can feel, 3 you can hear. Want a 2-min breathing exercise?");
+        return;
+      }
+      if (t.includes('stress') || t.includes('overwhelm') || t.includes('work')) {
+        addBot("Stress can pile up. Try this: write the top 3 tasks, pick only one to do now. Want me to open a quick journal?");
+        return;
+      }
+      if (t.includes('sleep') || t.includes('insomnia')) {
+        addBot("For better sleep: dim lights, no screens 30 min before bed, slow breathing (4-7-8). Would you like me to start a 2-min breathing timer?");
+        return;
+      }
+      if (t.includes('sad') || t.includes('low') || t.includes('down')) {
+        addBot("I’m sorry you’re feeling low. Tiny step: drink water, short walk, text a friend. I can also suggest gentle affirmations—want them?");
+        return;
+      }
+      if (t.includes('breath')) {
+        addBot("Starting a 2-min breathing exercise for you now. 🌿");
+        startBreathing();
+        return;
+      }
+      if (t.includes('journal')) {
+        addBot("Opening a quick journal. Write anything that’s on your mind. I’m proud of you for trying. ✍️");
+        openJournal();
+        return;
+      }
+      if (t.includes('affirm')) {
+        addBot("Here are some affirmations you can repeat slowly. 🌼");
+        suggestAffirmations();
+        return;
+      }
+      if (t.includes('tips')) {
+        addBot("<b>Quick tips:</b><br>• 5-minute stretch break<br>• 4-7-8 breathing<br>• 10-minute tidy-up<br>• Glass of water<br>• Write 3 worries then 1 next step.");
+        return;
+      }
+
+      // default
+      addBot("Thanks for sharing. I can help with <i>breathing</i>, <i>journal</i>, <i>affirmations</i>, or tips for <i>anxiety</i>, <i>stress</i>, <i>sleep</i>. What would you like?");
+    }
+
+    /* =========================
+       6) Init: load everything
+       ========================= */
+    async function loadAllData(){
+      await loadMoods();
+      await loadSessions();
+    }
+
+    // First load (if Firebase init fails gracefully, we still run)
+    loadAllData();
+
+    function toggleSidebar(){
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    /* ============================================================
+       🔥 ADDITIONS ONLY BELOW — no edits to your original logic
+       ============================================================ */
+
+    // Extend KEYS with new namespaces
+    KEYS.community = 'sukoon.community';
+    KEYS.favorites = 'sukoon.favorites';
+    KEYS.prefs = 'sukoon.prefs';
+    KEYS.notified = 'sukoon.notified'; // map of startISO -> true
+
+    // ---------- Mood stats (avg & streak) ----------
+    function calcAvgLast7(){
+      const days = lastNDays(7);
+      const vals = days.map(d=>moodState.byDate[fmtDate(d)]).filter(v=>v!=null);
+      if (!vals.length) return null;
+      const avg = vals.reduce((a,b)=>a+Number(b),0)/vals.length;
+      return Math.round(avg*10)/10;
+    }
+    function calcStreak(){
+      let cnt=0;
+      for (let i=0;i<365;i++){
+        const d=new Date(); d.setDate(d.getDate()-i);
+        if (moodState.byDate[fmtDate(d)]!=null) cnt++; else break;
+      }
+      return cnt;
+    }
+    function updateMoodStats(){
+      const avg = calcAvgLast7();
+      const streak = calcStreak();
+      const el = document.getElementById('moodStats');
+      if (!el) return;
+      el.textContent = `7-day avg: ${avg??'—'}  •  streak: ${streak} day${streak===1?'':'s'}`;
+    }
+    // update periodically & after interactions
+    setInterval(updateMoodStats, 3000);
+    // Try immediate first paint after data loads
+    setTimeout(updateMoodStats, 500);
+
+    // ---------- Therapists directory ----------
+    const THERAPISTS = [
+      { id:'aisha', name:'Dr. Aisha Verma', card:"Dr. Aisha Verma (Anxiety, Hindi/English)", specialties:['Anxiety'], languages:['Hindi','English'], rating:4.9, bio:'CBT, mindfulness, gentle exposure.' },
+      { id:'karan', name:'Mr. Karan Mehta', card:"Mr. Karan Mehta (Stress & Work, English)", specialties:['Stress','Work'], languages:['English'], rating:4.7, bio:'Stress & productivity coaching.' },
+      { id:'ria', name:"Ms. Ria D'Souza", card:"Ms. Ria D'Souza (Relationships, English)", specialties:['Relationships'], languages:['English'], rating:4.8, bio:'Communication & attachment styles.' },
+      { id:'sana', name:'Dr. Sana Iqbal', card:null, specialties:['Sleep','Anxiety'], languages:['Urdu','English'], rating:4.6, bio:'Sleep hygiene & anxiety tools.' },
+      { id:'vikas', name:'Dr. Vikas Rao', card:null, specialties:['Depression','Work'], languages:['Hindi','English'], rating:4.5, bio:'Behavioral activation, career stress.' }
+    ];
+    function unique(arr){ return [...new Set(arr.flat())]; }
+    function mapOptionByName(name){
+      const sel = document.getElementById('therapist');
+      for (const opt of sel.options){
+        if (opt.value.includes(name)) return opt.value;
+      }
+      // fallback: first option
+      return sel.options[0].value;
+    }
+    function quickBook(name){
+      document.getElementById('therapist').value = mapOptionByName(name);
+      prefillToday();
+      document.getElementById('notes').value = `Quick book from directory: ${name}`;
+      window.location.hash = '#booking';
+    }
+    async function toggleFavorite(id){
+      const favs = await storageGet(KEYS.favorites, []);
+      const set = new Set(favs);
+      set.has(id) ? set.delete(id) : set.add(id);
+      await storageSet(KEYS.favorites, [...set]);
+      renderTherapists();
+    }
+    async function renderTherapists(){
+      const listEl = document.getElementById('therapistList');
+      if (!listEl) return;
+      const q = (document.getElementById('thSearch').value||'').toLowerCase();
+      const spec = document.getElementById('thSpecialty').value;
+      const lang = document.getElementById('thLanguage').value;
+      const favs = new Set(await storageGet(KEYS.favorites, []));
+
+      // filters
+      let items = THERAPISTS.filter(t=>{
+        const matchesQ = !q || [t.name, ...t.specialties, ...t.languages, t.bio].join(' ').toLowerCase().includes(q);
+        const matchesS = !spec || t.specialties.includes(spec);
+        const matchesL = !lang || t.languages.includes(lang);
+        return matchesQ && matchesS && matchesL;
+      });
+      // sort favs to top
+      items.sort((a,b)=> (favs.has(b.id)-favs.has(a.id)) || (b.rating - a.rating));
+
+      listEl.innerHTML = items.map(t => `
+        <div class="card" style="padding:14px">
+          <div style="display:flex; justify-content:space-between; align-items:center">
+            <div>
+              <b>${t.name}</b> <span class="small muted">★ ${t.rating}</span>
+              <div class="small muted">${t.bio}</div>
+              <div style="margin-top:6px">
+                ${t.specialties.map(s=>`<span class="tag">${s}</span>`).join('')}
+                ${t.languages.map(l=>`<span class="tag">${l}</span>`).join('')}
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center">
+              <button class="btn" onclick="quickBook('${t.name.replace(/'/g,"\\'")}')">Quick book</button>
+              <button class="btn" title="Favorite" onclick="toggleFavorite('${t.id}')">${favs.has(t.id)?'💚':'🤍'}</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      // specialty/language dropdowns (fill once)
+      const sEl = document.getElementById('thSpecialty');
+      const lEl = document.getElementById('thLanguage');
+      if (sEl && sEl.options.length===1){
+        unique(THERAPISTS.map(t=>t.specialties)).forEach(s=>{
+          const o=document.createElement('option'); o.textContent=s; sEl.appendChild(o);
+        });
+      }
+      if (lEl && lEl.options.length===1){
+        unique(THERAPISTS.map(t=>t.languages)).forEach(s=>{
+          const o=document.createElement('option'); o.textContent=s; lEl.appendChild(o);
+        });
+      }
+      document.getElementById('favNote').textContent = `${favs.size} favorite${favs.size===1?'':'s'} saved locally.`;
+    }
+
+    // ---------- Community ----------
+    async function getPosts(){ return await storageGet(KEYS.community, []); }
+    async function setPosts(v){ await storageSet(KEYS.community, v); }
+
+    async function addPost(){
+      const text = (document.getElementById('postText').value||'').trim();
+      if(!text) { alert('Write something first.'); return; }
+      const tag = document.getElementById('postMood').value;
+      const anon = document.getElementById('postAnon').checked;
+      const post = { id: 'p'+Math.random().toString(36).slice(2), text, tag, anon, ts: Date.now(), likes:0 };
+      const posts = await getPosts();
+      posts.unshift(post);
+      await setPosts(posts.slice(0,200));
+      document.getElementById('postText').value='';
+      renderPosts();
+    }
+    async function likePost(id){
+      const posts = await getPosts();
+      const i = posts.findIndex(p=>p.id===id);
+      if (i>-1) posts[i].likes++;
+      await setPosts(posts);
+      renderPosts();
+    }
+    async function renderPosts(){
+      const wrap = document.getElementById('posts'); if(!wrap) return;
+      const sort = document.getElementById('postSort').value;
+      const posts = await getPosts();
+      const arr = [...posts];
+      if (sort==='top') arr.sort((a,b)=>b.likes-a.likes);
+      wrap.innerHTML = arr.map(p=>`
+        <div class="card" style="padding:14px; margin-bottom:10px">
+          <div class="small muted">${new Date(p.ts).toLocaleString()} • ${p.anon?'Anonymous':'You'}</div>
+          <div style="margin-top:6px">${p.text.replace(/</g,'&lt;')}</div>
+          ${p.tag?`<div style="margin-top:6px"><span class="tag">${p.tag}</span></div>`:''}
+          <div style="margin-top:10px">
+            <button class="btn" onclick="likePost('${p.id}')">👍 ${p.likes}</button>
+          </div>
+        </div>
+      `).join('');
+      document.getElementById('postCount').textContent = `${posts.length} post${posts.length===1?'':'s'}`;
+    }
+
+    // ---------- Settings / Theme / Export ----------
+    async function loadPrefs(){ return await storageGet(KEYS.prefs, { dark:false, reminder:true }); }
+    async function savePrefs(p){ await storageSet(KEYS.prefs, p); }
+    async function applyTheme(){
+      const p = await loadPrefs();
+      document.body.classList.toggle('dark', !!p.dark);
+      const t = document.getElementById('darkToggle'); if (t) t.checked = !!p.dark;
+      const r = document.getElementById('reminderToggle'); if (r) r.checked = !!p.reminder;
+    }
+
+    a
+    async function resetAll(){
+      if(!confirm('This will clear local data (moods, sessions, community, prefs). Continue?')) return;
+      localStorage.removeItem(KEYS.moods);
+      localStorage.removeItem(KEYS.sessions);
+      localStorage.removeItem(KEYS.community);
+      localStorage.removeItem(KEYS.favorites);
+      localStorage.removeItem(KEYS.prefs);
+      await loadAllData(); renderTherapists(); renderPosts(); applyTheme();
+      alert('Reset complete.');
+    }
+
+    // ---------- Session reminder (10 minutes before) ----------
+    let reminderInterval = null;
+    async function scheduleSessionReminder(){
+      const prefs = await loadPrefs();
+      if (!prefs.reminder) return;
+      if (reminderInterval) clearInterval(reminderInterval);
+      reminderInterval = setInterval(async ()=>{
+        if (!sessionState.list.length) return;
+        const s = sessionState.list[0];
+        const start = new Date(s.startISO).getTime();
+        const minsTo = Math.round((start - Date.now())/60000);
+        // prepare notified map
+        const notified = await storageGet(KEYS.notified, {});
+        if (minsTo === 10 && !notified[s.startISO]){
+          // in-app toast
+          addBot(`Reminder: Session with <b>${s.therapist}</b> starts in 10 minutes.`);
+          // browser notification
+          if ('Notification' in window){
+            if (Notification.ermission === 'granted'){
+              new Notification('Sukoon Reminder', { body:`${s.therapist} in 10 minutes.` });
+            } else if (Notification.permission !== 'denied'){
+              Notification.requestPermission().then(p=>{ if (p==='granted') new Notification('Sukoon Reminder', { body:`${s.therapist} in 10 minutes.` }); });
+            }
+          }
+          notified[s.startISO]=true; await storageSet(KEYS.notified, notified);
+        }
+      }, 30000);
+    }
+
+    // ---------- Small heal for malformed .ics onclick HTML ----------
+    const upcomingObserver = new MutationObserver(()=>{
+      const cont = document.querySelector('#upcomingContainer .session-line');
+      if (!cont) return;
+      const btns = cont.querySelectorAll('button.btn');
+      const hasICS = [...btns].some(b=>b.textContent?.includes('.ics'));
+      if (!hasICS){
+        const s = sessionState.list[0]; if (!s) return;
+        const btn = document.createElement('button');
+        btn.className='btn'; btn.textContent='.ics';
+        btn.onclick = ()=>downloadICS('sukoon-session.ics', s.ics);
+        const actionRow = cont.querySelector('div[style*="display:flex"]') || cont;
+        actionRow.appendChild(btn);
+      }
+    });
+    upcomingObserver.observe(document.getElementById('upcomingContainer'), { childList:true, subtree:true });
+
+    // ---------- Wire Settings UI ----------
+    (async function wireSettings(){
+      await applyTheme();
+      const prefs = await loadPrefs();
+      const darkT = document.getElementById('darkToggle');
+      const remT = document.getElementById('reminderToggle');
+      if (darkT) darkT.onchange = async (e)=>{ const p=await loadPrefs(); p.dark=!!e.target.checked; await savePrefs(p); applyTheme(); };
+      if (remT) remT.onchange = async (e)=>{ const p=await loadPrefs(); p.reminder=!!e.target.checked; await savePrefs(p); scheduleSessionReminder(); };
+      scheduleSessionReminder();
+    })();
+
+    // ---------- First renders ----------
+    renderTherapists();
+    renderPosts();
+    applyTheme();
+  </script>
+</body>
+</html>

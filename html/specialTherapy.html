@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sukoon - Special Therapy</title>
+  <link rel="icon" href="/images/favicon-enhanced.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #6a11cb, #2575fc);
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    /* Navbar */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 50px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    nav .logo {
+      width: 110px;
+    }
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 25px;
+      margin: 0;
+      padding: 0;
+    }
+    nav ul li a {
+      text-decoration: none;
+      color: #fff;
+      font-weight: 500;
+      transition: 0.3s;
+    }
+    nav ul li a:hover {
+      color: #ffd369;
+    }
+    .login-btn {
+      background: #ffd369;
+      color: #333;
+      font-weight: 600;
+      padding: 8px 18px;
+      border-radius: 25px;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+    .login-btn:hover {
+      background: #fff;
+      color: #2575fc;
+    }
+
+    /* Header */
+    header {
+      height: 90vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1500&q=80") no-repeat center/cover;
+      position: relative;
+    }
+    header::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.55);
+    }
+    header h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      position: relative;
+      z-index: 1;
+      color: #fff;
+      text-shadow: 0px 0px 20px rgba(0,0,0,0.6);
+      animation: fadeInDown 1.5s ease;
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Therapy Form Section */
+    section.therapy {
+      padding: 80px 10%;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      margin: 60px auto;
+      max-width: 900px;
+      text-align: center;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    }
+    section.therapy h3 {
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #ffd369;
+    }
+    .therapy input, .therapy select {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      margin-top: 15px;
+      font-size: 1rem;
+      outline: none;
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+    }
+    .therapy select option { color: #333; }
+    .therapy .btn {
+      margin-top: 20px;
+      background: linear-gradient(45deg, #ffd369, #ff9f43);
+      border: none;
+      padding: 14px 40px;
+      border-radius: 30px;
+      font-weight: bold;
+      color: #333;
+      cursor: pointer;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .therapy .btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0px 0px 15px rgba(255, 221, 87, 0.8);
+    }
+
+    /* Footer */
+    footer {
+      background: rgba(0,0,0,0.9);
+      padding: 50px 20px;
+      text-align: center;
+      color: #bbb;
+    }
+    footer h3 { color: #ffd369; }
+    footer .social-menu ul {
+      display: flex;
+      justify-content: center;
+      gap: 25px;
+      padding: 0;
+    }
+    footer .social-menu ul li {
+      list-style: none;
+    }
+    footer .social-menu ul li i {
+      font-size: 1.6rem;
+      transition: 0.3s;
+    }
+    footer .social-menu ul li i:hover {
+      color: #ffd369;
+      transform: scale(1.3);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav>
+    <a href="../index.html"><img class="logo" src="../logo.png" alt="Logo"/></a>
+    <ul>
+      <li><a href="../index.html">HOME</a></li>
+      <li><a href="#therapy">THERAPY</a></li>
+      <li><a href="#contact">CONTACT</a></li>
+    </ul>
+    <a href="login.html" class="login-btn">Login</a>
+  </nav>
+
+  <!-- Header -->
+  <header>
+    <h1>✨ Speak with Special Therapy 24/7 ✨</h1>
+  </header>
+
+  <!-- Therapy Interaction -->
+  <section class="therapy" id="therapy" data-aos="fade-up">
+    <h3>Tell us how you're feeling 💬</h3>
+    <input id="problemInput" placeholder="Describe your problem..." />
+
+    <select id="therapySelect">
+      <option value="" disabled selected>-- Choose a therapy option --</option>
+      <option value="../html/audioTherapy.html">🎵 Audio Therapy</option>
+      <option value="../html/readingTherapy.html">📖 Reading Therapy</option>
+      <option value="../html/yogatherapy.html">🧘 Yoga Therapy</option>
+      <option value="../html/laughTherapy.html">😂 Laughing Therapy</option>
+      <option value="../html/talkingTherapy.html">🗣 Talking Therapy</option>
+      <option value="../html/childTherapy.html">👶 Child Therapy</option>
+      <option value="../html/spirituality.html">🙏 Spiritual Therapy</option>
+    </select>
+
+    <button class="btn" onclick="redirectTherapy()">Get Help</button>
+  </section>
+
+  <!-- Footer -->
+  <footer id="contact">
+    <h3>Sukoon</h3>
+    <p>Go Stress-Free 🌸</p>
+    <div class="social-menu">
+      <ul>
+        <li><a href="#"><i class="fab fa-twitter"></i></a></li>
+        <li><a href="#"><i class="fab fa-github"></i></a></li>
+        <li><a href="#"><i class="fab fa-linkedin-in"></i></a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>AOS.init();</script>
+  <script>
+    function redirectTherapy() {
+      const select = document.getElementById("therapySelect");
+      const choice = select.value;
+      if (choice) {
+        window.location.href = choice;
+      } else {
+        alert("Please select a therapy option 🌸");
+      }
+    }
+  </script>
+</body>
+</html>
