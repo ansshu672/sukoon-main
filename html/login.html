@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE edge" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="/images/favicon-enhanced.png" />
   <link rel="stylesheet" href="css/login.css" />
@@ -26,35 +26,27 @@
       transition: all 0.3s ease-in-out;
       z-index: 1;
     }
-
     #emptyFieldsAlert {
       background-color: red;
     }
-    
     input[type="password"]::-webkit-credentials-auto-fill-button,
     input[type="password"]::-webkit-contacts-auto-fill-button,
     input[type="password"]::-ms-reveal {
-        display: none;
-      }
+      display: none;
+    }
   </style>
   <title>Sukoon - Login</title>
 </head>
-  <body onload="myfunction()">
-    <div id="load">
-      <div
-        style="
-          background-color: white;
-          height: 25vh;
-          width: 100%;
-          position: relative;
-          top: -70px;
-        "></div>
+<body onload="myfunction()">
+
+  <div id="load">
+    <div style="background-color: white; height: 25vh; width: 100%; position: relative; top: -70px;"></div>
   </div>
 
-  <div class="alert" id="emptyFieldsAlert" style="display: none">
-    Please fill in all fields!
-  </div>
+  <div class="alert" id="emptyFieldsAlert">Please fill in all fields!</div>
   <img src="../images/signupill.png" alt="" />
+
+  <!-- LOGIN FORM -->
   <div class="login">
     <div class="welcome">
       <h1 class="titletext">Welcome Back &#x1F917</h1>
@@ -79,6 +71,8 @@
       <span class="signupbutton"> Sign up</span>
     </div>
   </div>
+
+  <!-- SIGNUP FORM -->
   <div class="register">
     <div class="welcome">
       <h1 class="titletext">Create an account</h1>
@@ -103,7 +97,7 @@
     </div>
   </div>
 
-  <!-- Alert messages -->
+  <!-- Alerts -->
   <div class="alert" id="loginAlert">Sign in successful!</div>
   <div class="alert" id="signupAlert">Sign up successful!</div>
 
@@ -112,6 +106,7 @@
     const signup_btn = document.querySelector(".signupbutton");
     const register = document.querySelector(".register");
     const login = document.querySelector(".login");
+
     signup_btn.addEventListener("click", () => {
       register.style.display = "block";
       login.style.display = "none";
@@ -120,29 +115,38 @@
       register.style.display = "none";
       login.style.display = "block";
     });
+
+    // Hardcoded credentials (change as needed)
+    const validEmail = "user@example.com";
+    const validPassword = "12345";
+
     loginButton.addEventListener("click", () => {
-  const emailInput = document.getElementById("loginEmail");
-  const passwordInput = document.getElementById("loginPassword");
-  const loginAlert = document.getElementById("loginAlert");
-  if (emailInput.value.trim() === "" || passwordInput.value.trim() === "") {
-    const emptyFieldsAlert = document.getElementById("emptyFieldsAlert");
-    emptyFieldsAlert.style.display = "block";
-    setTimeout(() => {
-      emptyFieldsAlert.style.display = "none";
-    }, 3000);
-  } else {
-    emailInput.value = ""; // Clear email input
-    passwordInput.value = ""; // Clear password input
+      const emailInput = document.getElementById("loginEmail");
+      const passwordInput = document.getElementById("loginPassword");
+      const loginAlert = document.getElementById("loginAlert");
 
-    loginAlert.style.display = "block";
-    setTimeout(() => {
-      loginAlert.style.display = "none";
-      // 👇 Redirect to dashboard after 1 second
-      window.location.href = "dashboard.html";
-    }, 1000);
-  }
-});
+      if (emailInput.value.trim() === "" || passwordInput.value.trim() === "") {
+        const emptyFieldsAlert = document.getElementById("emptyFieldsAlert");
+        emptyFieldsAlert.style.display = "block";
+        setTimeout(() => { emptyFieldsAlert.style.display = "none"; }, 3000);
+      } else if (
+        emailInput.value.trim() === validEmail &&
+        passwordInput.value.trim() === validPassword
+      ) {
+        // Clear inputs
+        emailInput.value = "";
+        passwordInput.value = "";
 
+        // Success alert
+        loginAlert.style.display = "block";
+        setTimeout(() => {
+          loginAlert.style.display = "none";
+          window.location.href = "dashboard.html"; // redirect only if valid
+        }, 1000);
+      } else {
+        alert("Invalid email or password!");
+      }
+    });
 
     signupButton.addEventListener("click", () => {
       const usernameInput = document.getElementById("signupUsername");
@@ -157,13 +161,11 @@
       ) {
         const emptyFieldsAlert = document.getElementById("emptyFieldsAlert");
         emptyFieldsAlert.style.display = "block";
-        setTimeout(() => {
-          emptyFieldsAlert.style.display = "none";
-        }, 3000);
+        setTimeout(() => { emptyFieldsAlert.style.display = "none"; }, 3000);
       } else {
-        usernameInput.value = ""; // Clear username input
-        emailInput.value = ""; // Clear email input
-        passwordInput.value = ""; // Clear password input
+        usernameInput.value = "";
+        emailInput.value = "";
+        passwordInput.value = "";
 
         signupAlert.style.display = "block";
         setTimeout(() => {
@@ -172,22 +174,18 @@
       }
     });
 
-  </script>
-  <script>
+    // Preloader
     const preloader = document.getElementById("load");
-    function myfunction() {
-      preloader.style.display = "none";
-    }
+    function myfunction() { preloader.style.display = "none"; }
+
+    // Toggle password visibility
     const toggleLoginPassword = document.querySelector("#toggleLoginPassword");
     const loginPassword = document.getElementById("loginPassword");
-
-    toggleLoginPassword.addEventListener("click", function (e) {
-
-      if(loginPassword.type == "text"){
+    toggleLoginPassword.addEventListener("click", function () {
+      if (loginPassword.type === "text") {
         loginPassword.type = "password";
         toggleLoginPassword.className = "fas fa-eye-slash";
-      }
-      else if(loginPassword.type == "password"){
+      } else {
         loginPassword.type = "text";
         toggleLoginPassword.className = "fas fa-eye";
       }
@@ -195,19 +193,15 @@
 
     const toggleSignupPassword = document.querySelector("#toggleSignupPassword");
     const signupPassword = document.getElementById("signupPassword");
-
-    toggleSignupPassword.addEventListener("click", function (e) {
-
-      if(signupPassword.type == "text"){
+    toggleSignupPassword.addEventListener("click", function () {
+      if (signupPassword.type === "text") {
         signupPassword.type = "password";
         toggleSignupPassword.className = "fas fa-eye-slash";
-      }
-      else if(signupPassword.type == "password"){
+      } else {
         signupPassword.type = "text";
         toggleSignupPassword.className = "fas fa-eye";
       }
     });
   </script>
-
 </body>
 </html>
